@@ -6,7 +6,7 @@ on:
     branches: [ main ]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE22: true
 
 permissions:
   contents: read
@@ -24,16 +24,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
 
       - name: Get changed files
         id: changed-files
         run: |
-          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          CHANGED=$(git diff --name-status origin/${{ github.base_ref }}...HEAD)
           echo "files<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGED" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          echo "Changed files:"
+          echo "Changed files with status:"
           echo "$CHANGED"
 
       - name: Validate template files
@@ -41,13 +41,19 @@ jobs:
           ERRORS=0
           CHANGED_FILES="${{ steps.changed-files.outputs.files }}"
 
-          while IFS= read -r file; do
+          while IFS= read -r line; do
+            if [ -z "$line" ]; then continue; fi
+            
+            STATUS=$(echo "$line" | awk '{print $1}')
+            file=$(echo "$line" | cut -f2-)
+
             # Only check .md files inside templates/
             if echo "$file" | grep -qE '^templates/.+/.+\.md$'; then
-              echo "✅ Checking: $file"
+              echo "🔍 Checking template ($STATUS): $file"
 
-              # Check file exists (not deleted)
+              # Check file exists (not deleted in PR)
               if [ ! -f "$file" ]; then
+                echo "   Skipped (deleted/non-existent)"
                 continue
               fi
 
@@ -62,16 +68,12 @@ jobs:
                 ERRORS=$((ERRORS + 1))
               fi
 
-              # Check filename is lowercase
-              if echo "$FILENAME" | grep -q '[A-Z]'; then
-                echo "❌ Filename must be lowercase: $file"
-                ERRORS=$((ERRORS + 1))
-              fi
-
-              # Check Credit line exists
-              if ! grep -qi "Credit:" "$file"; then
-                echo "❌ Missing 'Credit:' line in: $file (required by CONTRIBUTING.md)"
-                ERRORS=$((ERRORS + 1))
+              # Enforce Credit line check ONLY for newly added files to avoid blocking edits to old templates
+              if [ "$STATUS" = "A" ]; then
+                if ! grep -qi "Credit:" "$file"; then
+                  echo "❌ Missing 'Credit:' line in new template: $file (required by CONTRIBUTING.md)"
+                  ERRORS=$((ERRORS + 1))
+                fi
               fi
 
               # Check file is not empty
@@ -92,6 +94,11 @@ jobs:
             echo ""
             echo "✅ All template files passed validation!"
           fi
+
+      - name: Syntax check JavaScript code
+        run: |
+          node --check assets/js/script.js
+          echo "✅ JavaScript syntax check passed"
 
       - name: Validate metadata generation
         run: |

@@ -1,0 +1,40 @@
+name: Template Submission
+description: Submit a new awesome profile template to the collection
+title: "[Template] <GitHub Username>"
+labels: ["template-submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for wanting to share your awesome profile template! Before submitting, please ensure you have followed the guidelines in [CONTRIBUTING.md](https://github.com/Z0ZeroX/Awesome-Profile-README-Templates/blob/main/CONTRIBUTING.md).
+  - type: input
+    id: username
+    attributes:
+      label: GitHub Username
+      placeholder: e.g. Z0ZeroX
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: Choose the best category for this template
+      options:
+        - creative-artistic
+        - code-focused
+        - dynamic-interactive
+        - minimalistic
+        - data-visual
+        - media-rich
+        - badges-icons
+        - showcase-collections
+        - others
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: What makes this template unique or awesome?
+    validations:
+      required: false

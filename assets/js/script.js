@@ -7,6 +7,10 @@ let currentFilters = {
     category: 'all',
     tags: []
 };
+let currentPage = 1;
+const itemsPerPage = 30;
+let activeMessageHandler = null;
+
 
 // DOM Elements
 const templatesGrid = document.getElementById('templatesGrid');
@@ -61,6 +65,7 @@ async function loadTemplates() {
         }
         
         filteredTemplates = [...templates];
+        currentPage = 1;
         
         // Populate category filter
         populateCategoryFilter();
@@ -186,7 +191,7 @@ function formatCategoryName(category) {
         word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
     
-    return `${icon} ${name}`;
+    return `${icon} ${escapeHtml(name)}`;
 }
 
 // Show loading state
@@ -203,28 +208,33 @@ function showLoading() {
 function updateResultsInfo() {
     if (resultsCount) {
         const total = templates.length;
-        const showing = filteredTemplates.length;
+        const matched = filteredTemplates.length;
+        const rendered = Math.min(currentPage * itemsPerPage, matched);
         
-        if (showing === total) {
-            resultsCount.textContent = `Showing all ${total} templates`;
+        if (matched === total) {
+            resultsCount.textContent = `Showing ${rendered} of all ${total} templates`;
         } else {
-            resultsCount.textContent = `Showing ${showing} of ${total} templates`;
+            resultsCount.textContent = `Showing ${rendered} of ${matched} matching templates (total: ${total})`;
         }
     }
 }
 
 // Render Templates
 function renderTemplates() {
-    if (filteredTemplates.length === 0) {
+    const templatesToRender = filteredTemplates.slice(0, currentPage * itemsPerPage);
+    
+    if (templatesToRender.length === 0) {
         templatesGrid.innerHTML = '';
         noResults.style.display = 'block';
+        const loadMoreContainer = document.getElementById('loadMoreContainer');
+        if (loadMoreContainer) loadMoreContainer.style.display = 'none';
         updateResultsInfo();
         return;
     }
     
     noResults.style.display = 'none';
     
-    templatesGrid.innerHTML = filteredTemplates.map(template => {
+    templatesGrid.innerHTML = templatesToRender.map(template => {
         // Use default preview if preview_url is false
         const previewImage = template.preview_url && template.preview_url !== 'false' && template.preview_url !== false
             ? template.preview_url
@@ -287,6 +297,16 @@ function renderTemplates() {
         `;
     }).join('');
     
+    // Toggle Load More button
+    const loadMoreContainer = document.getElementById('loadMoreContainer');
+    if (loadMoreContainer) {
+        if (currentPage * itemsPerPage < filteredTemplates.length) {
+            loadMoreContainer.style.display = 'block';
+        } else {
+            loadMoreContainer.style.display = 'none';
+        }
+    }
+    
     updateResultsInfo();
     
     // Add click events to cards using event delegation
@@ -333,6 +353,7 @@ function filterTemplates() {
         return searchMatch && categoryMatch && tagsMatch;
     });
     
+    currentPage = 1;
     renderTemplates();
     updateActiveTags();
 }
@@ -352,7 +373,7 @@ function updateActiveTags() {
     activeTagsContainer.innerHTML = currentFilters.tags.map(tag => `
         <span class="tag">
             #${escapeHtml(tag)}
-            <span class="tag-remove" onclick="removeTagFilter('${escapeHtml(tag)}')">&times;</span>
+            <span class="tag-remove" data-tag="${escapeHtml(tag)}">&times;</span>
         </span>
     `).join('');
 }
@@ -481,34 +502,40 @@ async function renderGitHubStylePreview(markdownContent, container, template) {
     container.innerHTML = '';
     container.appendChild(wrapperDiv);
     
+    // Cleanup any existing active message listener first
+    if (activeMessageHandler) {
+        window.removeEventListener('message', activeMessageHandler);
+        activeMessageHandler = null;
+    }
+
+    // Try local rendering with marked.js first (faster, avoids GitHub API rate limits)
     try {
-        // Try GitHub API first
+        if (typeof marked !== 'undefined') {
+            const localHtml = marked.parse(markdownContent);
+            createIsolatedPreview(localHtml, previewContainer, template);
+            return;
+        }
+    } catch (error) {
+        console.warn('Local parsing with marked.js failed, trying GitHub API fallback:', error);
+    }
+    
+    // Fallback to GitHub API
+    try {
         const renderedHtml = await renderWithGitHubAPI(markdownContent);
         if (renderedHtml) {
             createIsolatedPreview(renderedHtml, previewContainer, template);
             return;
         }
     } catch (error) {
-        console.warn('GitHub API failed, using fallback:', error);
+        console.warn('GitHub API failed, using raw fallback:', error);
     }
-    
-    // Fallback to local rendering with marked.js
-    try {
-        if (typeof marked !== 'undefined') {
-            const localHtml = marked.parse(markdownContent);
-            createIsolatedPreview(localHtml, previewContainer, template);
-        } else {
-            // Simple fallback if marked.js not available
-            previewContainer.innerHTML = `
-                <div style="padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
-                    <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; color: var(--text-primary);">${escapeHtml(markdownContent)}</pre>
-                </div>
-            `;
-        }
-    } catch (error) {
-        console.error('Fallback rendering failed:', error);
-        previewContainer.innerHTML = '<div class="error-message" style="padding: 20px; text-align: center; color: #ef4444;">Failed to render preview</div>';
-    }
+
+    // Simple fallback if both failed
+    previewContainer.innerHTML = `
+        <div style="padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+            <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; color: var(--text-primary);">${escapeHtml(markdownContent)}</pre>
+        </div>
+    `;
 }
 
 // Render with GitHub API
@@ -685,7 +712,7 @@ function createIsolatedPreview(htmlContent, container, template) {
         }
     };
     window.addEventListener('message', messageHandler);
-    iframe._messageHandler = messageHandler;
+    activeMessageHandler = messageHandler;
     
     container.innerHTML = '';
     container.appendChild(iframe);
@@ -779,11 +806,10 @@ function openModal() {
 function closeModal() {
     templateModal.classList.remove('active');
     document.body.style.overflow = '';
-    // Remove iframe message listener to prevent memory leak
-    const iframe = document.querySelector('#previewContent iframe');
-    if (iframe && iframe._messageHandler) {
-        window.removeEventListener('message', iframe._messageHandler);
-        iframe._messageHandler = null;
+    // Remove active message listener to prevent memory leak
+    if (activeMessageHandler) {
+        window.removeEventListener('message', activeMessageHandler);
+        activeMessageHandler = null;
     }
 }
 
@@ -843,11 +869,15 @@ function setupEventListeners() {
         themeToggle.addEventListener('click', toggleTheme);
     }
     
-    // Search
+    // Search with 300ms debounce
     if (searchInput) {
+        let debounceTimeout;
         searchInput.addEventListener('input', (e) => {
-            currentFilters.search = e.target.value;
-            filterTemplates();
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                currentFilters.search = e.target.value;
+                filterTemplates();
+            }, 300);
         });
     }
     
@@ -870,6 +900,15 @@ function setupEventListeners() {
         clearSearchBtn.addEventListener('click', resetFilters);
     }
     
+    // Load more button for pagination
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => {
+            currentPage++;
+            renderTemplates();
+        });
+    }
+    
     // Modal close
     if (modalClose) {
         modalClose.addEventListener('click', closeModal);
@@ -886,6 +925,20 @@ function setupEventListeners() {
             if (searchInput) searchInput.focus();
         }
     });
+    
+    // Active tags click (remove tag)
+    const activeTagsContainer = document.getElementById('activeTags');
+    if (activeTagsContainer) {
+        activeTagsContainer.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.tag-remove');
+            if (removeBtn) {
+                const tag = removeBtn.dataset.tag;
+                if (tag) {
+                    removeTagFilter(tag);
+                }
+            }
+        });
+    }
     
     // Smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
