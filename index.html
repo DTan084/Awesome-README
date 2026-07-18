@@ -163,6 +163,15 @@
                     </select>
                 </div>
                 
+                <div class="filter-group">
+                    <label for="sortFilter" class="filter-label">Sort:</label>
+                    <select id="sortFilter" class="filter-select" aria-label="Sort templates">
+                        <option value="default">Default</option>
+                        <option value="name-asc">Alphabetical (A-Z)</option>
+                        <option value="name-desc">Alphabetical (Z-A)</option>
+                    </select>
+                </div>
+                
                 <button class="btn btn-small btn-outline" id="resetFilters">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -277,8 +286,8 @@
                 <button class="modal-close" id="modalClose" aria-label="Close modal">&times;</button>
             </div>
             <div class="modal-tabs">
-                <button class="tab-btn active" onclick="switchTab('preview', this)">👁️ Preview</button>
-                <button class="tab-btn" onclick="switchTab('code', this)">💻 Code</button>
+                <button class="tab-btn active" id="tabBtnPreview">👁️ Preview</button>
+                <button class="tab-btn" id="tabBtnCode">💻 Code</button>
             </div>
             <div class="modal-body">
                 <div id="previewContent" class="tab-content active">
@@ -286,14 +295,14 @@
                 </div>
                 <div id="codeContent" class="tab-content">
                     <pre><code id="rawCode"></code></pre>
-                    <button class="copy-btn" onclick="copyCode()">Copy Code</button>
+                    <button class="copy-btn" id="copyCodeBtn">Copy Code</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Scroll to Top Button -->
-    <button id="scrollToTop" class="scroll-to-top" onclick="scrollToTop()" title="Scroll to top">
+    <button id="scrollToTop" class="scroll-to-top" title="Scroll to top">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
         </svg>

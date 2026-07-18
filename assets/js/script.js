@@ -5,6 +5,7 @@ let metadata = null;
 let currentFilters = {
     search: '',
     category: 'all',
+    sort: 'default',
     tags: []
 };
 let currentPage = 1;
@@ -16,6 +17,7 @@ let activeMessageHandler = null;
 const templatesGrid = document.getElementById('templatesGrid');
 const searchInput = document.getElementById('searchInput');
 const categoryFilter = document.getElementById('categoryFilter');
+const sortFilter = document.getElementById('sortFilter');
 const resetFiltersBtn = document.getElementById('resetFilters');
 const themeToggle = document.getElementById('themeToggle');
 const templateModal = document.getElementById('templateModal');
@@ -70,9 +72,11 @@ async function loadTemplates() {
         // Populate category filter
         populateCategoryFilter();
         
-        renderTemplates();
+        // Load initial filters from URL params
+        loadFiltersFromURL();
+        
+        filterTemplates();
         updateTemplateCount();
-        updateResultsInfo();
     } catch (error) {
         console.error('Error loading templates:', error);
         showError('Failed to load templates. Please try again later.');
@@ -196,12 +200,26 @@ function formatCategoryName(category) {
 
 // Show loading state
 function showLoading() {
-    templatesGrid.innerHTML = `
-        <div class="loading">
-            <div class="spinner"></div>
-            <p>Loading awesome templates...</p>
+    templatesGrid.innerHTML = Array(6).fill(0).map(() => `
+        <div class="skeleton-card">
+            <div class="skeleton-image"></div>
+            <div class="skeleton-content">
+                <div class="skeleton-title"></div>
+                <div class="skeleton-tags">
+                    <div class="skeleton-tag"></div>
+                    <div class="skeleton-tag"></div>
+                    <div class="skeleton-tag"></div>
+                </div>
+                <div class="skeleton-footer">
+                    <div class="skeleton-difficulty"></div>
+                    <div class="skeleton-actions">
+                        <div class="skeleton-action"></div>
+                        <div class="skeleton-action"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-    `;
+    `).join('');
 }
 
 // Update results info
@@ -353,9 +371,17 @@ function filterTemplates() {
         return searchMatch && categoryMatch && tagsMatch;
     });
     
+    // Sort templates
+    if (currentFilters.sort === 'name-asc') {
+        filteredTemplates.sort((a, b) => a.username.localeCompare(b.username));
+    } else if (currentFilters.sort === 'name-desc') {
+        filteredTemplates.sort((a, b) => b.username.localeCompare(a.username));
+    }
+    
     currentPage = 1;
     renderTemplates();
     updateActiveTags();
+    updateURLParams();
 }
 
 // Update Active Tags Display
@@ -398,10 +424,12 @@ function resetFilters() {
     currentFilters = {
         search: '',
         category: 'all',
+        sort: 'default',
         tags: []
     };
     searchInput.value = '';
     categoryFilter.value = 'all';
+    if (sortFilter) sortFilter.value = 'default';
     
     // Sync custom dropdown UI on reset
     const customTriggerText = document.querySelector('#customCategoryTrigger .trigger-text');
@@ -571,7 +599,7 @@ async function renderWithGitHubAPI(markdownContent) {
 function createIsolatedPreview(htmlContent, container, template) {
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'width: 100%; border: none; background-color: #ffffff; overflow: hidden;';
-    iframe.sandbox = 'allow-scripts';
+    iframe.sandbox = 'allow-scripts allow-same-origin';
     
     // GitHub-authentic CSS styles
     const githubStyles = `
@@ -681,38 +709,46 @@ function createIsolatedPreview(htmlContent, container, template) {
             <div class="markdown-body">
                 ${htmlContent}
             </div>
-            <script>
-                function adjustHeight() {
-                    const height = document.body.scrollHeight;
-                    window.parent.postMessage({type: 'resize', height: height}, '*');
-                }
-                
-                setTimeout(adjustHeight, 100);
-                
-                document.querySelectorAll('img').forEach(img => {
-                    img.onload = adjustHeight;
-                    img.onerror = adjustHeight;
-                });
-                
-                document.querySelectorAll('a').forEach(link => {
-                    link.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        window.open(this.href, '_blank');
-                    });
-                });
-            </script>
         </body>
         </html>
     `;
     
-    // Handle iframe height messages
-    const messageHandler = function(event) {
-        if (event.data.type === 'resize' && event.source === iframe.contentWindow) {
-            iframe.style.height = (event.data.height + 40) + 'px';
+    // Parent-driven height adjustments and event bindings to comply with CSP (no inline scripts in iframe)
+    iframe.onload = () => {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        if (doc) {
+            const adjustHeight = () => {
+                const height = doc.body.scrollHeight;
+                iframe.style.height = (height + 40) + 'px';
+            };
+            
+            // Multiple calculations to handle late images/styles/fonts loads
+            adjustHeight();
+            setTimeout(adjustHeight, 50);
+            setTimeout(adjustHeight, 150);
+            setTimeout(adjustHeight, 500);
+            setTimeout(adjustHeight, 1000);
+            setTimeout(adjustHeight, 2000);
+            
+            // Handle cached and slow images
+            doc.querySelectorAll('img').forEach(img => {
+                if (img.complete) {
+                    adjustHeight();
+                } else {
+                    img.addEventListener('load', adjustHeight);
+                    img.addEventListener('error', adjustHeight);
+                }
+            });
+            
+            // Handle link clicks to open in a new tab
+            doc.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.open(this.href, '_blank');
+                });
+            });
         }
     };
-    window.addEventListener('message', messageHandler);
-    activeMessageHandler = messageHandler;
     
     container.innerHTML = '';
     container.appendChild(iframe);
@@ -889,6 +925,14 @@ function setupEventListeners() {
         });
     }
     
+    // Sort filter
+    if (sortFilter) {
+        sortFilter.addEventListener('change', (e) => {
+            currentFilters.sort = e.target.value;
+            filterTemplates();
+        });
+    }
+    
     // Reset filters
     if (resetFiltersBtn) {
         resetFiltersBtn.addEventListener('click', resetFilters);
@@ -950,6 +994,34 @@ function setupEventListeners() {
             }
         });
     });
+
+    // Modal Tab preview button
+    const tabBtnPreview = document.getElementById('tabBtnPreview');
+    if (tabBtnPreview) {
+        tabBtnPreview.addEventListener('click', function() {
+            switchTab('preview', this);
+        });
+    }
+
+    // Modal Tab code button
+    const tabBtnCode = document.getElementById('tabBtnCode');
+    if (tabBtnCode) {
+        tabBtnCode.addEventListener('click', function() {
+            switchTab('code', this);
+        });
+    }
+
+    // Copy code button
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
+    if (copyCodeBtn) {
+        copyCodeBtn.addEventListener('click', copyCode);
+    }
+
+    // Scroll to Top button
+    const scrollToTopBtn = document.getElementById('scrollToTop');
+    if (scrollToTopBtn) {
+        scrollToTopBtn.addEventListener('click', scrollToTop);
+    }
 }
 
 // Utility Functions
@@ -1131,4 +1203,51 @@ window.addEventListener('scroll', () => {
         }
     }
 });
+
+// URL state management (deep linking filters / search / tags to URL query params)
+function updateURLParams() {
+    const params = new URLSearchParams();
+    if (currentFilters.search) params.set('search', currentFilters.search);
+    if (currentFilters.category !== 'all') params.set('category', currentFilters.category);
+    if (currentFilters.sort !== 'default') params.set('sort', currentFilters.sort);
+    if (currentFilters.tags.length > 0) params.set('tags', currentFilters.tags.join(','));
+    
+    const newURL = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+    window.history.replaceState({ path: newURL }, '', newURL);
+}
+
+function loadFiltersFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const search = params.get('search') || '';
+    const category = params.get('category') || 'all';
+    const sort = params.get('sort') || 'default';
+    const tagsRaw = params.get('tags') || '';
+    const tags = tagsRaw ? tagsRaw.split(',') : [];
+
+    currentFilters = { search, category, sort, tags };
+
+    // Apply values to DOM
+    if (searchInput) searchInput.value = search;
+    if (categoryFilter) categoryFilter.value = category;
+    if (sortFilter) sortFilter.value = sort;
+
+    // Sync custom category dropdown triggering text
+    if (category !== 'all') {
+        const customTriggerText = document.querySelector('#customCategoryTrigger .trigger-text');
+        if (customTriggerText) {
+            customTriggerText.textContent = formatCategoryName(category);
+        }
+        const customItems = document.querySelectorAll('#customCategoryDropdown .custom-select-item');
+        customItems.forEach(item => {
+            if (item.getAttribute('data-value') === category) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+    
+    // Populate active tags from URL
+    updateActiveTags();
+}
 

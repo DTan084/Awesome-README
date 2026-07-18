@@ -1131,6 +1131,8 @@ body.modal-open {
     border-radius: var(--radius-xl);
     max-width: 1000px;
     width: calc(100% - var(--spacing-xl) * 2);
+    height: 80vh;
+    min-height: 500px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
@@ -1250,7 +1252,7 @@ body.modal-open {
     position: relative;
     flex: 1;
     overflow: hidden;
-    padding: 24px;
+    padding: 0;
 }
 
 #codeContent pre {
@@ -1325,13 +1327,21 @@ body.modal-open {
     .nav {
         flex-wrap: wrap;
         justify-content: center;
-        gap: var(--spacing-sm);
+        gap: var(--spacing-md);
         width: 100%;
+        padding: 4px 0;
     }
     
     .nav-link {
         font-size: 0.875rem;
         padding: var(--spacing-xs);
+        background: transparent;
+        border-radius: 0;
+    }
+    
+    .nav-link.active {
+        background: transparent;
+        color: var(--accent-primary);
     }
     
     .theme-toggle {
@@ -1506,6 +1516,8 @@ body.modal-open {
     
     .modal-content {
         width: calc(100% - var(--spacing-sm) * 2);
+        height: 85vh;
+        min-height: 400px;
         max-height: 95vh;
         border-radius: var(--radius-md);
     }
@@ -1522,8 +1534,7 @@ body.modal-open {
     
     .modal-tabs {
         padding: 0 var(--spacing-sm);
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        overflow: visible;
     }
     
     .tab-btn {
@@ -1536,6 +1547,10 @@ body.modal-open {
         padding: var(--spacing-md);
     }
     
+    #codeContent {
+        padding: var(--spacing-md);
+    }
+    
     #codeContent pre {
         padding: var(--spacing-md);
         font-size: 0.8rem;
@@ -1543,11 +1558,11 @@ body.modal-open {
         -webkit-overflow-scrolling: touch;
     }
     
-    
     .copy-btn {
         position: static;
         width: 100%;
-        margin-top: var(--spacing-md);
+        margin-top: 0;
+        margin-bottom: var(--spacing-md);
     }
     
     .scroll-to-top {
@@ -1761,8 +1776,8 @@ select:focus-visible {
 
 .copy-btn {
     position: absolute;
-    top: 32px;
-    right: 32px;
+    top: 16px;
+    right: 16px;
     background: #0066cc;
     color: white;
     border: none;
@@ -1775,4 +1790,114 @@ select:focus-visible {
 
 .copy-btn:hover {
     background: #005bb5;
+}
+
+/* Skeleton Loading Cards */
+.skeleton-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+}
+
+.skeleton-image {
+    width: 100%;
+    height: 200px;
+    background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--border-color) 50%, var(--bg-tertiary) 75%);
+    background-size: 200% 100%;
+    animation: loading-pulse 1.5s infinite;
+}
+
+.skeleton-content {
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    flex: 1;
+}
+
+.skeleton-title {
+    width: 60%;
+    height: 1.5rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    animation: loading-pulse-opacity 1.5s infinite;
+}
+
+.skeleton-tags {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.skeleton-tag {
+    width: 4rem;
+    height: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    animation: loading-pulse-opacity 1.5s infinite;
+}
+
+.skeleton-footer {
+    margin-top: auto;
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.skeleton-difficulty {
+    width: 50%;
+    height: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    animation: loading-pulse-opacity 1.5s infinite;
+}
+
+.skeleton-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.skeleton-action {
+    width: 32px;
+    height: 32px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    animation: loading-pulse-opacity 1.5s infinite;
+}
+
+@keyframes loading-pulse {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@keyframes loading-pulse-opacity {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+/* Global Custom scrollbar for the entire website and scrollable elements */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
