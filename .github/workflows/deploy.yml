@@ -92,6 +92,7 @@ jobs:
         run: |
           mkdir -p _site
           cp -r index.html assets previews data templates docs _site/
+          cp sitemap.xml robots.txt _site/ 2>/dev/null || true
           touch _site/.nojekyll
 
       - name: Setup Pages

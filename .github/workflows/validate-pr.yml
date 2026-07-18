@@ -100,6 +100,10 @@ jobs:
           node --check assets/js/script.js
           echo "✅ JavaScript syntax check passed"
 
+      - name: Run unit tests
+        run: |
+          node scripts/generate-metadata.test.js
+
       - name: Validate metadata generation
         run: |
           node scripts/generate-metadata.js
