@@ -88,6 +88,83 @@ function populateCategoryFilter() {
         option.textContent = `${formatCategoryName(category)} (${data.count})`;
         categoryFilter.appendChild(option);
     });
+
+    // Populate custom select dropdown UI
+    const customDropdown = document.getElementById('customCategoryDropdown');
+    if (customDropdown) {
+        customDropdown.innerHTML = '';
+        
+        let totalCount = 0;
+        Object.values(metadata.categories).forEach(cat => totalCount += cat.count);
+        
+        const allItem = document.createElement('div');
+        allItem.className = 'custom-select-item selected';
+        allItem.setAttribute('role', 'option');
+        allItem.setAttribute('data-value', 'all');
+        allItem.innerHTML = `
+            <span>🔍 All Categories</span>
+            <span class="count-badge">${totalCount}</span>
+        `;
+        customDropdown.appendChild(allItem);
+        
+        Object.entries(metadata.categories).forEach(([category, data]) => {
+            const item = document.createElement('div');
+            item.className = 'custom-select-item';
+            item.setAttribute('role', 'option');
+            item.setAttribute('data-value', category);
+            item.innerHTML = `
+                <span>${formatCategoryName(category)}</span>
+                <span class="count-badge">${data.count}</span>
+            `;
+            customDropdown.appendChild(item);
+        });
+        
+        setupCustomSelectEvents();
+    }
+}
+
+// Setup custom dropdown select events
+function setupCustomSelectEvents() {
+    const selectEl = document.getElementById('customCategorySelect');
+    const trigger = document.getElementById('customCategoryTrigger');
+    if (!selectEl || !trigger) return;
+
+    const triggerText = trigger.querySelector('.trigger-text');
+    const dropdown = document.getElementById('customCategoryDropdown');
+    const items = dropdown.querySelectorAll('.custom-select-item');
+    const nativeSelect = document.getElementById('categoryFilter');
+    
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isActive = selectEl.classList.contains('active');
+        selectEl.classList.toggle('active');
+        trigger.setAttribute('aria-expanded', !isActive);
+    });
+    
+    items.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const value = item.getAttribute('data-value');
+            const text = item.querySelector('span').textContent;
+            
+            items.forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+            
+            triggerText.textContent = text;
+            selectEl.classList.remove('active');
+            trigger.setAttribute('aria-expanded', 'false');
+            
+            if (nativeSelect) {
+                nativeSelect.value = value;
+                nativeSelect.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+    
+    document.addEventListener('click', () => {
+        selectEl.classList.remove('active');
+        trigger.setAttribute('aria-expanded', 'false');
+    });
 }
 
 // Format category name for display
@@ -304,6 +381,21 @@ function resetFilters() {
     };
     searchInput.value = '';
     categoryFilter.value = 'all';
+    
+    // Sync custom dropdown UI on reset
+    const customTriggerText = document.querySelector('#customCategoryTrigger .trigger-text');
+    if (customTriggerText) {
+        customTriggerText.textContent = '🔍 All Categories';
+    }
+    const customItems = document.querySelectorAll('#customCategoryDropdown .custom-select-item');
+    customItems.forEach(item => {
+        if (item.getAttribute('data-value') === 'all') {
+            item.classList.add('selected');
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+
     filterTemplates();
     showNotification('Filters reset');
 }
@@ -451,7 +543,7 @@ async function renderWithGitHubAPI(markdownContent) {
 // Create isolated preview iframe (like script.js)
 function createIsolatedPreview(htmlContent, container, template) {
     const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'width: 100%; border: none; background-color: #ffffff; min-height: 600px;';
+    iframe.style.cssText = 'width: 100%; border: none; background-color: #ffffff; overflow: hidden;';
     iframe.sandbox = 'allow-scripts';
     
     // GitHub-authentic CSS styles
@@ -589,7 +681,7 @@ function createIsolatedPreview(htmlContent, container, template) {
     // Handle iframe height messages
     const messageHandler = function(event) {
         if (event.data.type === 'resize' && event.source === iframe.contentWindow) {
-            iframe.style.height = Math.min(event.data.height + 40, 800) + 'px';
+            iframe.style.height = (event.data.height + 40) + 'px';
         }
     };
     window.addEventListener('message', messageHandler);

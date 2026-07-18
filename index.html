@@ -24,13 +24,18 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
     
     <!-- Styles -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js" defer></script>
+    <script src="assets/js/script.js" defer></script>
 </head>
 <body>
     <!-- Header -->
@@ -141,9 +146,19 @@
                 
                 <div class="filter-group">
                     <label for="categoryFilter" class="filter-label">Category:</label>
-                    <select id="categoryFilter" class="filter-select" aria-label="Filter by category">
+                    <div class="custom-select" id="customCategorySelect">
+                        <button type="button" class="custom-select-trigger" id="customCategoryTrigger" aria-haspopup="listbox" aria-expanded="false">
+                            <span class="trigger-text">🔍 All Categories</span>
+                            <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="custom-select-dropdown" id="customCategoryDropdown" role="listbox" aria-label="Categories">
+                            <!-- Items populated dynamically -->
+                        </div>
+                    </div>
+                    <select id="categoryFilter" class="filter-select" aria-label="Filter by category" style="display: none;">
                         <option value="all">All Categories</option>
-                        <!-- Categories will be loaded dynamically from JSON -->
                     </select>
                 </div>
                 
@@ -279,10 +294,5 @@
         </svg>
     </button>
 
-    <!-- Scripts -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
-    <script src="scripts/script.js"></script>
 </body>
 </html>
