@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-18
+
+### Added
+- Sort options on frontend (Default, Alphabetical A-Z, Z-A).
+- Modern pulsing Skeleton Loading cards replacing the old text spinner.
+- Deep linking support (URL query sync) for search, category, sort, and tag filters.
+- Zero-dependency Node.js unit tests (`scripts/generate-metadata.test.js`) to validate metadata utilities.
+- Automatic JS syntax checks on every pull request.
+- Community template additions: `.github/CODEOWNERS`, `.github/dependabot.yml`, `.github/PULL_REQUEST_TEMPLATE.md`, and issue YAML forms (`bug_report.yml`, `feature_request.yml`, `template_submission.yml`).
+- Added `SECURITY.md`, `sitemap.xml`, and `robots.txt` configuration.
+- ESLint and Prettier configs (`.eslintrc.json`, `.prettierrc`).
+
+### Fixed
+- Critical XSS vulnerability in tag filtering by employing event delegation.
+- Out-of-memory closure leaks on modal preview iframe height handlers.
+- Escape outputs inside template rendering and category names formatting.
+- PR validation logic checks allowing capital letters in usernames and checking credit files strictly for new templates only.
+- Concurrency race conditions in deploy actions by locking target checkout SHA.
+
+### Changed
+- Restructured pages deploy artifact to upload a clean `_site/` build containing only public files.
+- Consolidated stylesheets, clearing duplicated CSS classes and animations.
+- Downgraded CI runner environments to Node 22 (LTS).
+- Prioritized client-side local `marked.js` parsing to avoid GitHub API rate limiting.
+
 ## [1.1.0] - 2025-10-07
 
 ### Added
