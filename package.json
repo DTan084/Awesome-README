@@ -4,9 +4,9 @@
   "description": "A beautiful collection of GitHub profile README templates with live preview",
   "main": "index.html",
   "scripts": {
-    "start": "python -m http.server 8000",
-    "serve": "npx serve .",
-    "build": "echo 'No build step required for static site'",
+    "start": "node scripts/generate-metadata.js && python -m http.server 8000",
+    "serve": "node scripts/generate-metadata.js && npx serve .",
+    "build": "node scripts/generate-metadata.js",
     "generate": "node scripts/generate-metadata.js",
     "test": "echo 'No tests specified'"
   },
